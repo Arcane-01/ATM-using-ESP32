@@ -1,0 +1,189 @@
+// Accessing the spreadsheet
+var sheet_id = "1XyvBCBYRGnV_Emr8ptMl2o-UvdIp8roN99rJ1QONGSQ";
+var SS = SpreadsheetApp.openById(sheet_id);
+
+// Accessing the sheet in which the usernames and passwords are stored
+var sheet1 = SS.getSheetByName('credentials');
+// We will create alternate sheets by using the username as sheet name eg:var sheet1 = ss.getSheetByName('Charmander');
+
+// var values = SS.getDataRange().getValues(); // a 2 dimensional array of all the data in the sheet indexed by rows and columns.
+
+function doGet(e){
+
+// for verification
+  if(e.parameter.namelogin !== undefined && e.parameter.pinlogin!==undefined){
+    var values = sheet1.getDataRange().getValues();
+    var name = String(e.parameter.namelogin);
+    var pin = String(e.parameter.pinlogin);
+
+    // iterate in a for loop(in the first i.e. 'A' column)
+    for(n=0;n<values.length;++n){
+      var cell = values[n][0] ; // 0 is the index of the column
+
+      // checking whether any value matches with the entered username
+      if(String(cell)== String(name)){ 
+
+        // Checking whether the password matches
+        if(String(values[n][1]) == pin){
+          return ContentService.createTextOutput(String(0)); // The password matches
+        }
+        else{
+          return ContentService.createTextOutput(String(1)); // The password doesn't match
+        } 
+      }
+      else{ // The entered username doesn't exist 
+        continue;
+      }
+    } 
+    return ContentService.createTextOutput(String(3)); // No Username
+  }
+
+// for new user
+  if(e.parameter.usernew !== undefined && e.parameter.usernewpass!==undefined){
+    var name2 = String(e.parameter.usernew);
+    var pin2 = String(e.parameter.usernewpass);
+    var values = sheet1.getDataRange().getValues();
+
+    for(n=0;n<values.length;++n){
+      var cell = values[n][0] ; // 0 is the index of the column
+
+      // checking whether any value matches with the entered username
+      if(String(cell)== String(name2)){  
+        return ContentService.createTextOutput(String(0));  // The username matched
+      }
+      else{
+        continue;
+      }
+    }
+    // The username doesn't match 
+    sheet1.appendRow([name2,pin2]);
+    SS.insertSheet(String(name2));
+    var sheet2 = SS.getSheetByName(String(name2));
+    sheet2.getRange("A1:C1").setValues([["amount","command","balance"]]);
+    sheet2.getRange("A2:C2").setValues([["15000","start","15000"]]);
+    return ContentService.createTextOutput(String(1)); // Successfully created a new user
+  }
+
+// for withdrawal
+  if(e.parameter.withdraw !== undefined && e.parameter.userid!==undefined){
+
+    var name = String(e.parameter.userid);
+    var amt = Number(e.parameter.withdraw);
+    var sheet2 = SS.getSheetByName(name); // Accessing the sheet in ehich this corresponding user transactions are stored
+
+    var values = sheet2.getDataRange().getValues();
+    var n = Number(values.length);
+    var bal = Number(values[n-1][2]);
+
+    var newbal = bal - amt;
+    if(newbal<0){
+      return ContentService.createTextOutput(String(0)); // Insufficient Balance
+    }
+    else{
+      sheet2.appendRow([amt,"debit",newbal]); // Successfully debited
+      return ContentService.createTextOutput(String(1)); 
+      
+    }
+    
+  }
+
+// for credit
+  if(e.parameter.credit !== undefined && e.parameter.userid!==undefined){
+
+    var name = String(e.parameter.userid);
+    var amt = Number(e.parameter.credit);
+    var sheet2 = SS.getSheetByName(name); // Accessing the sheet in ehich this corresponding user transactions are stored
+
+    var values = sheet2.getDataRange().getValues();
+    var n = Number(values.length);
+    var bal = Number(values[n-1][2]);
+
+    var newbal = bal + amt;
+
+    sheet2.appendRow([amt,"credit",newbal]);
+  }
+
+// for balance checking
+  if(e.parameter.balancecheckuser !== undefined){
+    var name = String(e.parameter.balancecheckuser);
+    var sheet2 = SS.getSheetByName(name); // Accessing the sheet in ehich this corresponding user transactions are stored
+
+    var values = sheet2.getDataRange().getValues();
+    var n = Number(values.length);
+    var bal = Number(values[n-1][2]);
+
+    return ContentService.createTextOutput(String(bal)); // The current balance is shown
+  }
+
+// for reseting password
+  if(e.parameter.passreset !== undefined && e.parameter.userid1!==undefined){
+    var newpassword = String(e.parameter.passreset);
+    var name = String(e.parameter.userid1);
+    var values = sheet1.getDataRange().getValues();
+
+    for(n=0;n<values.length;++n){
+      var cell = values[n][0]; // 0 is the index of the column
+
+      // checking whether any value matches with the entered username
+      if(String(cell)== String(name)){
+        var target = Number(n) + 1;
+        var range = sheet1.getRange("B"+String(target));
+        range.setValue(String(newpassword));
+        return ContentService.createTextOutput(String(0)); //The password was reseted
+      } 
+
+  }
+  }
+
+  // for fund transfer
+  if(e.parameter.sender !== undefined && e.parameter.reciever!==undefined && e.parameter.fund!==undefined){
+    var values = sheet1.getDataRange().getValues(); //credentials values
+    var sender = String(e.parameter.sender);
+    var reciever = String(e.parameter.reciever);
+    var fund = String(e.parameter.fund);
+    var sheetsender = SS.getSheetByName(sender);
+    
+    var valuesSender = sheetsender.getDataRange().getValues();
+
+
+    
+    
+    for(n=0;n<values.length;++n){
+      var cell = values[n][0]; // 0 is the index of the column
+
+      // checking whether any value matches with the entered reciever
+      if(String(cell)== String(reciever)){ //Enter here if reciever match
+        var sheetreciever = SS.getSheetByName(reciever);
+        var valuesReciever = sheetreciever.getDataRange().getValues();
+        // Balance of Sender
+        var s = Number(valuesSender.length);
+        var balsender = Number(valuesSender[s-1][2]);
+        var newbalsender = Number(balsender) - Number(fund);
+
+        if (Number(newbalsender)<0){
+          
+          return ContentService.createTextOutput(String(0)); //Insufficient Funds
+        }
+        else {
+          var sheetreciever = SS.getSheetByName(reciever);
+          var valuesReciever = sheetreciever.getDataRange().getValues();
+          // Changing the sheet of sender
+          sheetsender.appendRow([fund,"debit",newbalsender]);
+          // Changing the sheet of reciever
+
+          // Balance of reciever
+          var r = Number(valuesReciever.length);
+          var balreciever = Number(valuesReciever[r-1][2]);
+          
+          var newbalreciever = Number(balreciever) + Number(fund);
+          sheetreciever.appendRow([fund,"credit",newbalreciever]);
+
+          return ContentService.createTextOutput(String(1)); // Fund Transfer successfull
+        }
+        
+      }
+    }
+    return ContentService.createTextOutput(String("2")); // No Such User
+}
+}
+
