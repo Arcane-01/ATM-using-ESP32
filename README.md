@@ -1,4 +1,4 @@
-# ATM_using_ESP32
+# ATM using ESP32
 
 This repo is a part of evaluation for Embedded Systems course (ECP403) instructed by Ankit A. Bhurane and Amit Agarwal
 
